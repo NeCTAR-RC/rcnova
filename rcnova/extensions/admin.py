@@ -16,6 +16,7 @@
 #    under the License.
 
 import logging
+import base64
 
 from webob import exc
 
@@ -41,7 +42,7 @@ def project_dict(project):
         return {}
 
 
-class AdminProjectController(object):
+class ProjectAdminController(object):
 
     def show(self, req, id):
         return project_dict(auth_manager.AuthManager().get_project(id))
@@ -49,81 +50,32 @@ class AdminProjectController(object):
     def index(self, req):
         user_id = getattr(req.environ['nova.context'], 'user_id', '')
         project_id = getattr(req.environ['nova.context'], 'project_id', '')
-        return auth_manager.AuthManager().get_credentials(user_id, project_id)
-
-    def create(self, req, body):
-        name = body['project'].get('name')
-        manager_user = body['project'].get('manager_user')
-        description = body['project'].get('description')
-        member_users = body['project'].get('member_users')
-
-        context = req.environ['nova.context']
-        msg = _("Create project %(name)s managed by"
-                " %(manager_user)s") % locals()
-        LOG.audit(msg, context=context)
-        project = project_dict(
-                     auth_manager.AuthManager().create_project(
-                     name,
-                     manager_user,
-                     description=None,
-                     member_users=None))
-        return {'project': project}
-
-    def update(self, req, id, body):
-        context = req.environ['nova.context']
-        name = id
-        manager_user = body['project'].get('manager_user')
-        description = body['project'].get('description')
-        msg = _("Modify project: %(name)s managed by"
-                " %(manager_user)s") % locals()
-        LOG.audit(msg, context=context)
-        auth_manager.AuthManager().modify_project(name,
-                                             manager_user=manager_user,
-                                             description=description)
-        return exc.HTTPAccepted()
-
-    def delete(self, req, id):
-        context = req.environ['nova.context']
-        LOG.audit(_("Delete project: %s"), id, context=context)
-        auth_manager.AuthManager().delete_project(id)
-        return exc.HTTPAccepted()
+        return {"project-zip": 
+                base64.encodestring(auth_manager.AuthManager().get_credentials(user_id, project_id))}
 
 
-class BinarySerializer(wsgi.DictSerializer):
-    """Default JSON request body serialization"""
-
-    def default(self, data):
-        raise Exception('test')
-        return data
-
-
-class Admin(object):
+class ProjectAdmin(object):
 
     def __init__(self):
         pass
 
     def get_name(self):
-        return "Admin Controller"
+        return "Project Admin Controller"
 
     def get_alias(self):
-        return "ADMIN"
+        return "NECTAR-PROJECT"
 
     def get_description(self):
-        return "The Admin API Extension"
+        return "A Project Admin API Extension"
 
     def get_namespace(self):
-        return "http:TODO/"
+        return "http://nectar.org.au"
 
     def get_updated(self):
         return "2011-05-25 16:12:21.656723"
 
     def get_resources(self):
         resources = []
-        body_serializers = {'application/zip': BinarySerializer()}
-        serializer = wsgi.ResponseSerializer(body_serializers)
-        del serializer.body_serializers['application/xml']
-        del serializer.body_serializers['application/json']
         resources.append(extensions.ResourceExtension('test/',
-                                                 AdminProjectController(),
-                                                 serializer=serializer))
+                                                 AdminProjectController()))
         return resources
