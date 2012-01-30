@@ -50,11 +50,11 @@ class ProjectAdminController(object):
     def index(self, req):
         user_id = getattr(req.environ['nova.context'], 'user_id', '')
         project_id = getattr(req.environ['nova.context'], 'project_id', '')
-        return {"project-zip": 
+        return {"project-zip":
                 base64.encodestring(auth_manager.AuthManager().get_credentials(user_id, project_id))}
 
 
-class ProjectAdmin(object):
+class Admin(object):
 
     def __init__(self):
         pass
@@ -77,5 +77,5 @@ class ProjectAdmin(object):
     def get_resources(self):
         resources = []
         resources.append(extensions.ResourceExtension('test/',
-                                                 AdminProjectController()))
+                                                 ProjectAdminController()))
         return resources
